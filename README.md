@@ -69,7 +69,8 @@ silent, and the speaker button next to the date mutes them (remembered on your d
 
 So a small or new subreddit still has a rank, a team average and a lively board, a few **lab rats** play every day.
 They are bots and they are **always labelled as bots** ("lab rat #123 (bot)"). Real players are shown anonymously as
-"lab rat #N" too, without the "(bot)" tag. The six neighbour colonies on the board are yesterday's real players' best placements (up to six, anonymous: stored by a numbered slot, never by username) and lab-rat bot colonies when there are not enough. Your own colony may come back as a neighbour, and the game tells you which one.
+"lab rat #N (player)", never with a username. The rank shows two rows above and two below you, and how many real players
+took part today. The six neighbour colonies on the board are yesterday's real players' best placements (up to six, anonymous: stored by a numbered slot, never by username) and lab-rat bot colonies when there are not enough. Your own colony may come back as a neighbour, and the game tells you which one.
 
 ## Accessibility
 

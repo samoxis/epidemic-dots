@@ -257,18 +257,19 @@ export async function recordPlay(day: string, uid: string, seeds: unknown): Prom
   return { ok: true };
 }
 
-/** Rank among real players and the day's lab rats (bots), with the rows right above and below the player. */
+/** Rank among real players and the day's lab rats (bots), with two rows above and two below the player. */
 async function rankFor(day: string, uid: string, immunity: number, bots: readonly BotPlayer[]): Promise<StateResponse['rank']> {
   const realTotal = await redis.zCard(lbKey(day));
   const asc = await redis.zRank(lbKey(day), uid);
   if (asc === undefined || realTotal === 0) return null;
   const realPos = realTotal - asc; // 1 = best among real players
   const position = realPos + bots.filter((b) => b.immunity > immunity).length;
-  const rows = await redis.zRange(lbKey(day), Math.max(0, realPos - 2), realPos, { by: 'rank', reverse: true });
+  const rows = await redis.zRange(lbKey(day), Math.max(0, realPos - 3), realPos + 1, { by: 'rank', reverse: true });
   type Entry = { name: string; immunity: number; you: boolean; bot: boolean };
   const entries: Entry[] = [
     ...rows.map((r) => ({
-      name: r.member === uid ? 'You' : labRatName(r.member),
+      // other real players stay anonymous, but are marked as people so they are never mistaken for bots
+      name: r.member === uid ? 'You' : `${labRatName(r.member)} (player)`,
       immunity: Math.round(r.score),
       you: r.member === uid,
       bot: false,
@@ -278,8 +279,8 @@ async function rankFor(day: string, uid: string, immunity: number, bots: readonl
   if (!entries.some((e) => e.you)) entries.push({ name: 'You', immunity, you: true, bot: false });
   entries.sort((a, b) => b.immunity - a.immunity || Number(b.you) - Number(a.you));
   const me = entries.findIndex((e) => e.you);
-  const start = Math.max(0, me - 1);
-  const near: NearRow[] = entries.slice(start, me + 2).map((e, i) => ({
+  const start = Math.max(0, me - 2);
+  const near: NearRow[] = entries.slice(start, me + 3).map((e, i) => ({
     name: e.name,
     immunity: e.immunity,
     you: e.you,

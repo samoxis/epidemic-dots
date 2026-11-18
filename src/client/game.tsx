@@ -846,6 +846,11 @@ export const App = () => {
                     · #{state.rank.position} of {state.rank.total}
                   </span>
                 </div>
+                <div className="dgv-small dgv-muted" style={{ marginBottom: 4 }}>
+                  {state.players === 1
+                    ? 'You are the only real player so far today; the rest are lab rats (bots).'
+                    : `${state.players} real players today (shown as "player"); the rest are lab rats (bots).`}
+                </div>
                 <div
                   className="dgv-near"
                   style={{ borderTop: '1px solid #d6cfbd' }}
