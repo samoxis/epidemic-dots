@@ -80,7 +80,19 @@ const slotNamesKey = (day: string) => `day:${day}:slotnames`;
 /** The player's Reddit username for display (u/name), or null when unknown or when they chose to hide it. */
 async function shownName(uid: string): Promise<string | null> {
   if (await redis.get(hideNameKey(uid))) return null;
-  const name = await redis.get(nameKey(uid));
+  let name = await redis.get(nameKey(uid));
+  if (!name && uid.startsWith('t2_')) {
+    // players from before names were stored: ask Reddit once, then keep it like any other name
+    try {
+      name = (await reddit.getUserById(uid as `t2_${string}`))?.username;
+      if (name) {
+        await redis.set(nameKey(uid), name);
+        await redis.expire(nameKey(uid), DAY_TTL);
+      }
+    } catch (error) {
+      console.error(`[names] could not look up ${uid}: ${error}`);
+    }
+  }
   return name ? `u/${name}` : null;
 }
 
