@@ -38,8 +38,10 @@ type DayBoard = {
   vaccine: boolean;
   mutation: Mutation;
   mutationBy?: 'players' | 'rats';
-  /** True when the lab rats' mutation was dropped because it made the board unfair. */
+  /** True when the picked mutation was dropped because it made the board unfair. */
   mutationCancelled?: boolean;
+  /** The mutation that was picked before the fairness check (set when it was cancelled). */
+  pickedMutation?: Mutation;
   /** The lab's forecast factor for this board (absent on boards made before it existed: the strain's factor is used). */
   fc?: number;
   /** Team goal for the day (average immunity score), calibrated when the board is created. */
@@ -121,7 +123,11 @@ export async function loadBoard(day: string): Promise<DayBoard> {
   });
   const { ghosts, slots, best, bestSeeds, mutation, mutationCancelled, fc } = picked;
   const goal = calibratedGoal(rngFromText(`goal:${day}`), level, ghosts, best, delay, mutation);
-  const board: DayBoard = { level, ghosts, slots, best, bestSeeds, vaccine, mutation, mutationBy: voted.by, mutationCancelled, fc, goal };
+  const board: DayBoard = {
+    level, ghosts, slots, best, bestSeeds, vaccine, mutation, mutationBy: voted.by, mutationCancelled,
+    ...(mutationCancelled ? { pickedMutation: voted.mutation } : {}),
+    fc, goal,
+  };
   // Two first requests at once must not create two different boards: only the first write wins.
   await redis.set(boardKey(day), JSON.stringify(board), { nx: true });
   await redis.expire(boardKey(day), DAY_TTL);
@@ -140,6 +146,9 @@ export function strainInfo(b: DayBoard): StrainInfo {
     vaccine: b.vaccine,
     mutation: b.mutation ?? 'none',
     mutationBy: b.mutation && b.mutation !== 'none' ? (b.mutationBy ?? 'players') : 'none',
+    ...(b.mutationCancelled && b.pickedMutation && b.pickedMutation !== 'none'
+      ? { cancelled: { mutation: b.pickedMutation, by: b.mutationBy ?? 'rats' } }
+      : {}),
     jump: e.jump,
     every: e.every,
     fc: b.fc ?? l.fc,
@@ -210,7 +219,14 @@ export async function recordPlay(day: string, uid: string, seeds: unknown): Prom
   if (first) {
     await redis.hIncrBy(statsKey(day), 'players', 1);
     // An anonymous handle for tomorrow's colony. Its own counter never goes down (unlike 'players', which the moderator
-    // reset decrements), so two players can never share a slot.
+    // reset decrements), so two players can never share a slot. A day that started before this counter existed seeds it
+    // from the highest slot already stored.
+    if ((await redis.hGet(statsKey(day), 'slots')) === undefined) {
+      const used = Object.keys(await redis.hGetAll(placementsKey(day)))
+        .map((f) => Number(f.slice(1)))
+        .filter((n) => Number.isInteger(n) && n > 0);
+      if (used.length > 0) await redis.hSet(statsKey(day), { slots: String(Math.max(...used)) });
+    }
     slot = await redis.hIncrBy(statsKey(day), 'slots', 1);
     await redis.hIncrBy(weekUserKey(day, uid), 'days', 1);
   }

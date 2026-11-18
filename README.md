@@ -51,9 +51,10 @@ The lab predicts how many dots you will keep. Beat the prediction for a badge. A
   only 1 square), **Jumpier** (one square further) or **Grumpier** (wake a round earlier). The most popular one wins; if nobody votes, the lab rats (bots) pick one, so most days have a twist.
 - **Weekly leagues** (Sniffle, Cough, Fever, Outbreak, Pandemic) move you up on your weekly average. You never move down while you keep playing (after 14 days away the lab forgets you and you start again in Sniffle).
   Reach a 60% weekly average to move up one league per week. You can optionally show your league as your flair in the subreddit; it is off until you tap the button and you can remove it any time.
-- **Every board is checked for fairness** before it goes live: the lab's benchmark must be at least 15 dots and no more
-  than half of random first runs may end with nothing alive. If a layout or the lab rats' twist fails, the twist is
-  dropped or the layout redrawn. The lab's forecast is calibrated per board and is always below the benchmark.
+- **Every board is checked for fairness** before it goes live. The lab aims for a benchmark of at least 15 dots and
+  no more than half of random first runs ending with nothing alive. If a layout or the lab rats' twist misses that,
+  the twist is dropped (the game says so) or the layout redrawn; in the rare case that nothing passes, the fairest
+  candidate is used. The lab's forecast is calibrated per board and is always below the benchmark.
 - **Difficulty rotates by day:** easy days (Sneezy), spicy days (Hopper) and chaotic days (Yeet), each with its own
   board layout and its own team goal.
 

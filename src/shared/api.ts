@@ -14,6 +14,8 @@ export type StrainInfo = {
   mutation: Mutation;
   /** Who picked it: the players' vote, or the lab rats (bots) when nobody voted. */
   mutationBy: 'players' | 'rats' | 'none';
+  /** A mutation that was picked but cancelled because it made today's board unfair, and who picked it. */
+  cancelled?: { mutation: Mutation; by: 'players' | 'rats' };
   jump: number;
   every: number;
   /** Lab forecast factor. */

@@ -426,6 +426,17 @@ export const App = () => {
               {MUTATION_INFO[state.strain.mutation].text}
             </>
           )}
+          {state.strain.cancelled && (
+            <>
+              {' '}
+              Yesterday{' '}
+              {state.strain.cancelled.by === 'rats'
+                ? 'the lab rats (bots), with nobody else voting,'
+                : 'the lab'}{' '}
+              voted for <b>{mutationName(state.strain.cancelled.mutation)}</b>, but it
+              made today's board unfair, so the lab cancelled it. Paperwork was filed.
+            </>
+          )}
         </div>
 
         {phase === 'plant' && (
