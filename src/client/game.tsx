@@ -23,6 +23,7 @@ import { resultCue, roundCues } from '../shared/soundPlan';
 import { isMuted, setMuted, sfx } from './sound';
 import { journey } from './journey';
 import { CountUp } from './ui/CountUp';
+import { DotShower } from './ui/DotShower';
 import {
   countdown,
   forecastFor,
@@ -64,6 +65,8 @@ export const App = () => {
   const [soundOff, setSoundOff] = useState(isMuted);
   // the germs' wake-up round: a sneeze shakes the board for a moment
   const [sneeze, setSneeze] = useState(0);
+  // beat the lab: a short dot shower over the result
+  const [celebrate, setCelebrate] = useState(false);
   // the 'New board in' countdown ticks once a minute from when the state arrived
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -203,6 +206,10 @@ export const App = () => {
     if (end && !end.played) {
       end.played = true;
       sfx.result(end.cue);
+      if (end.cue === 'cheer') {
+        setCelebrate(true);
+        window.setTimeout(() => setCelebrate(false), 2600);
+      }
       journey.finished(end.immunity, end.cue === 'cheer');
     }
   }, []);
@@ -362,6 +369,7 @@ export const App = () => {
   return (
     <div className="dgv-wrap">
       <div className={`dgv-card dgv-split ${phase === 'plant' ? 'dgv-plant' : ''}`}>
+        {celebrate && <DotShower />}
         <span className="dgv-tape l" />
         <span className="dgv-tape r" />
         <div className="dgv-row dgv-head" style={{ marginTop: 4 }}>

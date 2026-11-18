@@ -66,6 +66,8 @@ export function Board({
         const dead = frame.dead[k] === true;
         const sick = (frame.inf[k] ?? -1) >= 0;
         const small = !seeds.has(key(x, y));
+        // the player's own dot catching the germs: a little shiver instead of the usual pop
+        const shiver = owner === 'me' && sick && !dead && prev != null && (prev.inf[k] ?? -1) < 0;
         const changed =
           prev != null &&
           (prev.own[k] !== owner ||
@@ -88,8 +90,8 @@ export function Board({
           cells.push(
             <g
               key={k}
-              className="dgv-pop"
-              style={{ animationDelay: `${Math.min(520, n * 18)}ms` }}
+              className={shiver ? 'dgv-shiver' : 'dgv-pop'}
+              style={{ animationDelay: shiver ? '0ms' : `${Math.min(520, n * 18)}ms` }}
             >
               {inner}
             </g>
@@ -113,15 +115,12 @@ export function Board({
           />
         );
     }
+    // a freshly planted dot hops in (the pop plays once, when it mounts)
     for (const [x, y] of mine)
       cells.push(
-        <Sticker
-          key={`m${x},${y}`}
-          x={x}
-          y={y}
-          fill={COLONY_COLORS.me ?? '#ffd166'}
-          mood="happy"
-        />
+        <g key={`m${x},${y}`} className="dgv-pop">
+          <Sticker x={x} y={y} fill={COLONY_COLORS.me ?? '#ffd166'} mood="happy" />
+        </g>
       );
   }
 
