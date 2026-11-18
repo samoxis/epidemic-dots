@@ -42,7 +42,8 @@
   "permissions": {
     "reddit": {
       "enable": true
-    }
+    },
+    "journeys": true
   },
   "scripts": {
     "dev": "vite build --watch",

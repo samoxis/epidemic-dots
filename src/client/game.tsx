@@ -21,6 +21,7 @@ import {
 import { SHARE_ENABLED, shareText } from '../shared/share';
 import { resultCue, roundCues } from '../shared/soundPlan';
 import { isMuted, setMuted, sfx } from './sound';
+import { journey } from './journey';
 import {
   countdown,
   forecastFor,
@@ -67,7 +68,11 @@ export const App = () => {
     return () => window.clearInterval(id);
   }, []);
   // what the current run will sound like at its end (set on release, played once)
-  const runEnd = useRef<{ cue: 'cheer' | 'meh'; played: boolean } | null>(null);
+  const runEnd = useRef<{ cue: 'cheer' | 'meh'; played: boolean; immunity: number } | null>(null);
+  // Devvit Journeys: the app is ready once today's board has arrived
+  useEffect(() => {
+    if (state) journey.appReady();
+  }, [state]);
   const timer = useRef<number | undefined>(undefined);
   const anim = useRef<number | undefined>(undefined);
   const viewRef = useRef<View>(FULL_VIEW);
@@ -162,6 +167,7 @@ export const App = () => {
       } else if (mine.length < 3) {
         const next = [...mine, cell];
         sfx.plant(next.length);
+        journey.planted(next.length);
         setMine(next);
         setMsg(
           next.length === 3
@@ -194,11 +200,13 @@ export const App = () => {
     if (end && !end.played) {
       end.played = true;
       sfx.result(end.cue);
+      journey.finished(end.immunity, end.cue === 'cheer');
     }
   }, []);
 
   /** Another run on the same board: back to planting. Only the best run of the day counts. */
   const tryAgain = () => {
+    journey.interaction('try_again');
     window.clearInterval(timer.current);
     setRetrying(true);
     setReleased(false);
@@ -226,11 +234,14 @@ export const App = () => {
       return;
     }
     sfx.release();
+    journey.released();
     // Use the state the server sent back: on the first run of the day only it knows Patient Zero.
     const runFrames = simulate(saved, mine);
+    const runKept = keptIn(runFrames[ROUNDS]);
     runEnd.current = {
-      cue: resultCue(keptIn(runFrames[ROUNDS]), forecastFor(saved, mine)),
+      cue: resultCue(runKept, forecastFor(saved, mine)),
       played: false,
+      immunity: immunityScore(runKept, saved.bestPossible),
     };
     const wake = saved.strain.wake;
     setReleasedSeeds(mine);
@@ -814,6 +825,7 @@ export const App = () => {
                   aria-pressed={state.myVote === m}
                   onClick={() => {
                     sfx.click();
+                    journey.interaction('mutation_vote', m);
                     void vote(m).then((err) =>
                       setVoteMsg(
                         err ?? 'Vote counted. The germs are taking notes.'
@@ -899,6 +911,7 @@ export const App = () => {
                     <button
                       className="dgv-link"
                       onClick={() => {
+                        journey.interaction('league_flair', 'off');
                         void setFlair(false).then((err) =>
                           setFlairMsg(err ?? 'Flair removed.')
                         );
@@ -920,6 +933,7 @@ export const App = () => {
                     <button
                       className="dgv-btn ghost"
                       onClick={() => {
+                        journey.interaction('league_flair', 'on');
                         void setFlair(true).then((err) =>
                           setFlairMsg(err ?? 'Done. Your league is on show.')
                         );

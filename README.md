@@ -84,7 +84,9 @@ took part today. The six neighbour colonies on the board are yesterday's real pl
 
 - Stored per player: today's best placement, score, vote, weekly average, league and whether you opted in to the league flair, keyed by Reddit user id, auto-deleted after 14 days.
 - Yesterday's best placements are reused as neighbour colonies under a numbered slot only, never with a user id or username.
-- Nothing is sent to outside services, and nothing is sold or used to profile anyone.
+- Gameplay milestones (run started, dots planted, run finished with its score, votes) go to Reddit's own Devvit
+  analytics (Journeys) so the game can be measured on the platform. Nothing is sent to outside services, and nothing is
+  sold or used to profile anyone.
 
 ## Design rules we hold ourselves to
 
