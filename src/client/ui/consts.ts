@@ -12,7 +12,7 @@ export const COLONY_COLORS: Record<string, string> = {
   F: '#e9d9b0',
   me: '#ffd166',
 };
-export const COLONY_NAMES: Record<string, string> = { A: 'teal', B: 'violet', C: 'salmon', D: 'blue', E: 'pink', F: 'sand' };
+export { COLONY_NAMES } from '../../shared/board';
 export const SICK_COLOR = '#b6dc6a';
 
 export type View = { x: number; y: number; w: number; h: number };

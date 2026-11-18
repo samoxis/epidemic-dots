@@ -1,5 +1,6 @@
 import { reddit, redis } from '@devvit/web/server';
 import { dayKey } from '../../shared/board';
+import { recapFor } from './game';
 
 /** One title per day ("Epidemic Dots, Wed 18 Nov: the outbreak is live") so the feed reads as a daily series, not duplicates. */
 const titleFor = (d: Date = new Date()): string =>
@@ -23,7 +24,13 @@ const HOW_TO_PLAY = [
 export const createPost = async () => {
   const post = await reddit.submitCustomPost({ title: titleFor() });
   try {
-    const comment = await reddit.submitComment({ id: post.id, text: HOW_TO_PLAY });
+    // Yesterday's recap on top (empty on the very first day or if anything is missing), then the how-to.
+    const recap = await recapFor(dayKey());
+    const comment = await reddit.submitComment({ id: post.id, text: recap ? `${recap}
+
+---
+
+${HOW_TO_PLAY}` : HOW_TO_PLAY });
     await comment.distinguish(true);
   } catch (error) {
     // The post is what matters; a missing welcome comment must never stop the day.

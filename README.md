@@ -65,6 +65,14 @@ soft tick each round, a comic *bwomp* when the germs wake up, a sad *boing* when
 fanfare (or a deadpan *wah-wah* when the lab was right). Sounds only start after you tap, the feed card is always
 silent, and the speaker button next to the date mutes them (remembered on your device).
 
+## Streaks and the daily recap
+
+- **Streak:** play on consecutive days to grow it. You get **one free lazy day a week**: skip a day and the streak survives.
+  You can hide the streak with one tap (it keeps counting quietly), and losing it costs nothing.
+- **Yesterday in the lab:** each daily post's pinned comment (from the app account) opens with yesterday's story: how
+  many real players took part, their average against the goal, the best run, whether today is a Vaccine day, who was
+  Patient Zero (behind a spoiler tag) and today's twist.
+
 ## Lab rats (bots)
 
 So a small or new subreddit still has a rank, a team average and a lively board, a few **lab rats** play every day.
@@ -82,7 +90,7 @@ took part today. The six neighbour colonies on the board are yesterday's real pl
 
 ## Privacy
 
-- Stored per player: today's best placement, score, vote, weekly average, league and whether you opted in to the league flair, keyed by Reddit user id, auto-deleted after 14 days.
+- Stored per player: today's best placement, score, vote, weekly average, league, streak (and whether you hid it) and whether you opted in to the league flair, keyed by Reddit user id, auto-deleted after 14 days.
 - Yesterday's best placements are reused as neighbour colonies under a numbered slot only, never with a user id or username.
 - Gameplay milestones (run started, dots planted, run finished with its score, votes) go to Reddit's own Devvit
   analytics (Journeys) so the game can be measured on the platform. Nothing is sent to outside services, and nothing is
@@ -91,7 +99,7 @@ took part today. The six neighbour colonies on the board are yesterday's real pl
 ## Design rules we hold ourselves to
 
 - No loot boxes, no random rewards, no paid randomness, no daily-login bonuses.
-- No streaks and no daily-login pressure: nothing here punishes you for missing a day.
+- Streaks always come with a free lazy day each week and can be hidden; nothing here punishes you for missing a day.
 - The game never posts or comments as you. (A tap-to-confirm "share my score as a comment" is built but switched off until Reddit approves the app, because only approved apps can post as the player.)
 - Funny, never mean to the player.
 

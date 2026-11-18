@@ -19,12 +19,14 @@ import {
   type Mutation,
   type Point,
 } from '../../shared/engine';
-import { dayKey, labRatName, levelForDay, secondsToReset, weekKey, type RealColony } from '../../shared/board';
+import { COLONY_NAMES, dayKey, labRatName, levelForDay, secondsToReset, weekKey, type RealColony } from '../../shared/board';
+import { recapText } from '../../shared/recap';
 import { cleanKept, labForecast, pickBoard } from '../../shared/dayBoard';
 import { rngFromText } from '../../shared/rng';
 import { LEAGUES, leagueName, nextLeague } from '../../shared/league';
 import { shareText } from '../../shared/share';
 import { mergeAttempt } from '../../shared/attempts';
+import { playStreak, streakView, type Streak } from '../../shared/streak';
 import { botPlayers, ratMutation, type BotPlayer } from '../../shared/bots';
 import type { NearRow, PlayResult, StateResponse, StrainInfo } from '../../shared/api';
 
@@ -70,6 +72,28 @@ const playKey = (day: string, uid: string) => `day:${day}:play:${uid}`;
 const sharedKey = (day: string, uid: string) => `share:${day}:${uid}`;
 const leagueKey = (uid: string) => `league:${uid}`;
 const flairKey = (uid: string) => `flair:${uid}`;
+const streakKey = (uid: string) => `streak:${uid}`;
+
+async function readStreak(uid: string): Promise<Streak | null> {
+  const raw = await redis.get(streakKey(uid));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Streak;
+  } catch {
+    return null;
+  }
+}
+
+async function writeStreak(uid: string, s: Streak): Promise<void> {
+  await redis.set(streakKey(uid), JSON.stringify(s));
+  await redis.expire(streakKey(uid), DAY_TTL);
+}
+
+/** Hide or show the player's streak (it keeps counting either way). */
+export async function setStreakHidden(uid: string, hidden: boolean): Promise<void> {
+  const s = await readStreak(uid);
+  if (s) await writeStreak(uid, { ...s, hidden });
+}
 const placementsKey = (day: string) => `day:${day}:placements`;
 const lbKey = (day: string) => `lb:day:${day}`;
 const weekUserKey = (day: string, uid: string) => `week:${weekKey(day)}:${uid}`;
@@ -229,6 +253,7 @@ export async function recordPlay(day: string, uid: string, seeds: unknown): Prom
     }
     slot = await redis.hIncrBy(statsKey(day), 'slots', 1);
     await redis.hIncrBy(weekUserKey(day, uid), 'days', 1);
+    await writeStreak(uid, playStreak(await readStreak(uid), day).streak);
   }
   await redis.hSet(playKey(day, uid), {
     slot: String(slot),
@@ -303,6 +328,7 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
   const saved = uid ? await readPlay(day, uid) : null;
   const played = saved?.result ?? null;
   const rank = uid && played ? await rankFor(day, uid, played.immunity, bots) : null;
+  const streak = uid ? streakView(await readStreak(uid), day) : null;
   let week: StateResponse['week'] = null;
   if (uid) {
     const w = await redis.hGetAll(weekUserKey(day, uid));
@@ -331,6 +357,7 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
     realColonies,
     yourColony,
     avgImmunity: players > 0 ? Math.round(sum / players) : 0,
+    streak,
     secondsToReset: secondsToReset(date),
     played,
     attemptsUsed: saved?.attempts ?? 0,
@@ -458,7 +485,42 @@ export async function resetMyData(day: string, uid: string): Promise<string> {
   }
   const vote = await redis.get(myVoteKey(day, uid));
   if (vote && (MUTATIONS as readonly string[]).includes(vote)) await redis.hIncrBy(voteKey(day), vote, -1);
-  await redis.del(playKey(day, uid), weekUserKey(day, uid), leagueKey(uid), sharedKey(day, uid), myVoteKey(day, uid));
+  await redis.del(playKey(day, uid), weekUserKey(day, uid), leagueKey(uid), sharedKey(day, uid), myVoteKey(day, uid), streakKey(uid));
   if (await redis.get(flairKey(uid))) await setFlairOptIn(uid, false);
   return play ? 'Your test data for today is gone. You are a first-time player again.' : 'Nothing to reset. You are already a first-time player.';
+}
+
+const capital = (m: string) => m.charAt(0).toUpperCase() + m.slice(1);
+
+/**
+ * "Yesterday in the lab" for the top of today's pinned comment: yesterday's real players, average and goal, best run,
+ * Patient Zero (spoiler-tagged), and today's twist. Bots never count. Returns '' if anything is missing.
+ */
+export async function recapFor(day: string): Promise<string> {
+  try {
+    const prev = prevDay(day);
+    const prevRaw = await redis.get(boardKey(prev));
+    const today = await loadBoard(day);
+    const stats = await redis.hGetAll(statsKey(prev));
+    const players = Number(stats.players ?? 0);
+    const prevBoard = prevRaw ? (JSON.parse(prevRaw) as DayBoard) : null;
+    const top = players > 0 ? await redis.zRange(lbKey(prev), 0, 0, { by: 'rank', reverse: true }) : [];
+    const zeroId = prevBoard?.ghosts.find((g) => g.zero)?.id ?? null;
+    const twist =
+      today.mutation && today.mutation !== 'none' ? { name: capital(today.mutation), by: today.mutationBy ?? 'players' } : null;
+    return recapText({
+      dateLabel: new Date(`${prev}T00:00:00Z`).toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }),
+      players,
+      avgImmunity: players > 0 ? Math.round(Number(stats.sum ?? 0) / players) : 0,
+      goal: prevBoard?.goal ?? LEVELS[levelForDay(prev)].teamGoal,
+      bestImmunity: top[0] ? Math.round(top[0].score) : null,
+      zeroName: zeroId ? (COLONY_NAMES[zeroId] ?? null) : null,
+      vaccineToday: today.vaccine,
+      twist,
+      cancelledTwist: today.mutationCancelled && today.pickedMutation && today.pickedMutation !== 'none' ? capital(today.pickedMutation) : null,
+    });
+  } catch (error) {
+    console.error(`[recap] could not build the recap: ${error}`);
+    return '';
+  }
 }

@@ -33,6 +33,9 @@ export function weekKey(day: string): string {
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
+/** Player-facing colour names of the six neighbour colonies. */
+export const COLONY_NAMES: Record<string, string> = { A: 'teal', B: 'violet', C: 'salmon', D: 'blue', E: 'pink', F: 'sand' };
+
 const SEED_COUNTS = [2, 2, 2, 2, 3, 3];
 const IDS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const MIN_GAP = 3; // Chebyshev distance between seeds of different colonies

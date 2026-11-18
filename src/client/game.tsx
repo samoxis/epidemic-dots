@@ -44,7 +44,7 @@ const clamp = (v: number, lo: number, hi: number) =>
 const sameCell = (a: Point, b: Point) => a[0] === b[0] && a[1] === b[1];
 
 export const App = () => {
-  const { state, stateAt, error, play, vote, share, setFlair, reload } = useDay();
+  const { state, stateAt, error, play, vote, share, setFlair, setStreakHidden, reload } = useDay();
   const [flairMsg, setFlairMsg] = useState<string | null>(null);
   const [confirmShare, setConfirmShare] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
@@ -690,6 +690,39 @@ export const App = () => {
               Only your best run of the day counts. New board in{' '}
               {countdown(Math.max(0, state.secondsToReset - Math.floor((now - stateAt) / 1000)))}.
             </div>
+
+            {state.streak && (
+              <div className="dgv-small" style={{ marginTop: 6 }}>
+                {state.streak.hidden ? (
+                  <>
+                    Streak hidden.{' '}
+                    <button className="dgv-link" onClick={() => void setStreakHidden(false)}>
+                      Show it
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <b>
+                      {state.streak.days}-day streak.
+                    </b>{' '}
+                    <span className="dgv-muted">
+                      {state.streak.freezeAvailable
+                        ? 'One free lazy day left this week: skip a day and it survives.'
+                        : 'Lazy day used this week. The germs are taking attendance.'}
+                    </span>{' '}
+                    <button
+                      className="dgv-link"
+                      onClick={() => {
+                        journey.interaction('streak', 'hide');
+                        void setStreakHidden(true);
+                      }}
+                    >
+                      Hide streak
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
 
             {SHARE_ENABLED && (
               <div className="dgv-goal">

@@ -54,6 +54,8 @@ export type StateResponse = {
   /** Average best-run immunity of today's real players, 0-100 (lab rats never count). */
   avgImmunity: number;
   secondsToReset: number;
+  /** Daily streak (with one free lazy day a week), or null before the first ever run. */
+  streak: { days: number; freezeAvailable: boolean; hidden: boolean } | null;
   /** The player's best run today, or null if they have not played. */
   played: PlayResult | null;
   attemptsUsed: number;
