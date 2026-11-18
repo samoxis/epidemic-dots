@@ -13,7 +13,8 @@ two-minute daily game and for communities that want a shared daily ritual: one b
 a team goal everyone chips in on, and a vote on how the germs change tomorrow.
 
 Critical notes: the game stores only what it needs to play (your three dots, your score, your vote), under your
-Reddit user id, and deletes it automatically after 14 days. It never shows usernames. It never posts, comments or
+Reddit user id, and deletes it automatically after 14 days. It shows players' usernames in the rank, on the next day's
+board and in the daily recap, unless a player taps **Hide my name**. It never posts, comments or
 subscribes as you. Posts and the pinned how-to comment come from the app account. There are no purchases, no outside
 links, no external services and no free-text input.
 
@@ -76,9 +77,11 @@ silent, and the speaker button next to the date mutes them (remembered on your d
 ## Lab rats (bots)
 
 So a small or new subreddit still has a rank, a team average and a lively board, a few **lab rats** play every day.
-They are bots and they are **always labelled as bots** ("lab rat #123 (bot)"). Real players are shown anonymously as
-"lab rat #N (player)", never with a username. The rank shows two rows above and two below you, and how many real players
-took part today. The six neighbour colonies on the board are yesterday's real players' best placements (up to six, anonymous: stored by a numbered slot, never by username) and lab-rat bot colonies when there are not enough. Your own colony may come back as a neighbour, and the game tells you which one.
+They are bots and they are **always labelled as bots** ("lab rat #123 (bot)"). Real players are shown by their username (u/name), or as
+"lab rat #N (player)" if they tapped **Hide my name**. The rank shows two rows above and two below you, and how many real
+players took part today. The six neighbour colonies on the board are yesterday's real players' best placements (up to
+six) and lab-rat bot colonies when there are not enough; before you plant, the game lists whose colonies they are
+("u/name (teal)"). Your own colony may come back as a neighbour, and the game tells you which one.
 
 ## Accessibility
 
@@ -90,8 +93,9 @@ took part today. The six neighbour colonies on the board are yesterday's real pl
 
 ## Privacy
 
-- Stored per player: today's best placement, score, vote, weekly average, league, streak (and whether you hid it) and whether you opted in to the league flair, keyed by Reddit user id, auto-deleted after 14 days.
-- Yesterday's best placements are reused as neighbour colonies under a numbered slot only, never with a user id or username.
+- Stored per player: today's best placement, score, vote, weekly average, league, streak (and whether you hid it), your username and whether you hide it, and whether you opted in to the league flair, keyed by Reddit user id, auto-deleted after 14 days.
+- Yesterday's best placements are reused as neighbour colonies under a numbered slot, with the username attached only
+  for players who show their name. Hiding your name removes it from the colony you already left for tomorrow.
 - Gameplay milestones (run started, dots planted, run finished with its score, votes) go to Reddit's own Devvit
   analytics (Journeys) so the game can be measured on the platform. Nothing is sent to outside services, and nothing is
   sold or used to profile anyone.

@@ -54,6 +54,10 @@ export type StateResponse = {
   /** Average best-run immunity of today's real players, 0-100 (lab rats never count). */
   avgImmunity: number;
   secondsToReset: number;
+  /** Today's colonies that were yesterday's players showing their name: colony id -> "u/name". */
+  neighbourNames: Record<string, string>;
+  /** True when the player chose to stay anonymous (rank, tomorrow's board, recap). */
+  nameHidden: boolean;
   /** Daily streak (with one free lazy day a week), or null before the first ever run. */
   streak: { days: number; freezeAvailable: boolean; hidden: boolean } | null;
   /** The player's best run today, or null if they have not played. */

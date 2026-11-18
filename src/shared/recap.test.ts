@@ -15,6 +15,7 @@ test('a played day reports players, average, goal and best run', () => {
   const t = recapText({ ...base, players: 2, avgImmunity: 61, bestImmunity: 100, vaccineToday: true });
   assert.match(t, /2 real players, average immunity 61% \(goal 53%\)/);
   assert.match(t, /Best run: 100%/);
+  assert.match(recapText({ ...base, players: 2, bestImmunity: 90, bestName: 'u/spore' }), /Best run: 90% by u\/spore\./);
   assert.match(t, /Vaccine day/);
 });
 

@@ -3,7 +3,7 @@ import { context, reddit } from '@devvit/web/server';
 import { dayKey } from '../../shared/board';
 import { SHARE_ENABLED } from '../../shared/share';
 import type { ErrorResponse, FlairRequest, PlayRequest, ShareResponse, StateResponse, VoteRequest } from '../../shared/api';
-import { buildState, castVote, hasShared, markShared, recordPlay, setFlairOptIn, setStreakHidden, shareTextFor } from '../core/game';
+import { buildState, castVote, hasShared, markShared, recordPlay, setFlairOptIn, setNameHidden, setStreakHidden, shareTextFor } from '../core/game';
 
 export const api = new Hono();
 
@@ -77,6 +77,19 @@ api.post('/share', async (c) => {
 });
 
 /** Opt in or out of showing the league as the player's flair in this subreddit. Explicit tap only. */
+api.post('/name', async (c) => {
+  const uid = context.userId;
+  if (!uid) return c.json<ErrorResponse>({ status: 'error', message: 'Log in first.' }, 401);
+  try {
+    const body = await c.req.json<{ hidden?: unknown }>().catch(() => ({}) as { hidden?: unknown });
+    await setNameHidden(dayKey(), uid, body.hidden === true);
+    return c.json<StateResponse>(await buildState(uid));
+  } catch (error) {
+    console.error('name failed', error);
+    return c.json<ErrorResponse>({ status: 'error', message: 'Could not change your name setting.' }, 500);
+  }
+});
+
 api.post('/streak', async (c) => {
   const uid = context.userId;
   if (!uid) return c.json<ErrorResponse>({ status: 'error', message: 'Log in first.' }, 401);

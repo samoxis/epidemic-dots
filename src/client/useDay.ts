@@ -113,6 +113,23 @@ export function useDay() {
     }
   }, [setState]);
 
+  /** Show or hide the player's username. Returns an error message, or null on success. */
+  const setNameHidden = useCallback(async (hidden: boolean): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hidden }),
+      });
+      const data = await readJson(res);
+      if ('status' in data) return data.message;
+      setState(data);
+      return null;
+    } catch {
+      return 'The lab misplaced that setting. Try again.';
+    }
+  }, [setState]);
+
   /** Hide or show the streak. Returns an error message, or null on success. */
   const setStreakHidden = useCallback(async (hidden: boolean): Promise<string | null> => {
     try {
@@ -130,7 +147,7 @@ export function useDay() {
     }
   }, [setState]);
 
-  return { state, stateAt, error, play, vote, share, setFlair, setStreakHidden, reload } as const;
+  return { state, stateAt, error, play, vote, share, setFlair, setStreakHidden, setNameHidden, reload } as const;
 }
 
 /** All 9 frames (start + 8 rounds) of a placement on today's board, using the same engine as the server. */

@@ -73,6 +73,41 @@ const sharedKey = (day: string, uid: string) => `share:${day}:${uid}`;
 const leagueKey = (uid: string) => `league:${uid}`;
 const flairKey = (uid: string) => `flair:${uid}`;
 const streakKey = (uid: string) => `streak:${uid}`;
+const nameKey = (uid: string) => `name:${uid}`;
+const hideNameKey = (uid: string) => `hidename:${uid}`;
+const slotNamesKey = (day: string) => `day:${day}:slotnames`;
+
+/** The player's Reddit username for display (u/name), or null when unknown or when they chose to hide it. */
+async function shownName(uid: string): Promise<string | null> {
+  if (await redis.get(hideNameKey(uid))) return null;
+  const name = await redis.get(nameKey(uid));
+  return name ? `u/${name}` : null;
+}
+
+/** Whether the player chose to stay anonymous. */
+async function nameHidden(uid: string): Promise<boolean> {
+  return Boolean(await redis.get(hideNameKey(uid)));
+}
+
+/**
+ * Show or hide the player's username in the rank, on tomorrow's board and in the daily recap. Hiding also removes the
+ * name from the colony they already left for tomorrow.
+ */
+export async function setNameHidden(day: string, uid: string, hidden: boolean): Promise<void> {
+  const play = await readPlay(day, uid);
+  if (hidden) {
+    await redis.set(hideNameKey(uid), '1');
+    await redis.expire(hideNameKey(uid), DAY_TTL);
+    if (play && play.slot > 0) await redis.hDel(slotNamesKey(day), [`s${play.slot}`]);
+  } else {
+    await redis.del(hideNameKey(uid));
+    const name = await redis.get(nameKey(uid));
+    if (play && play.slot > 0 && name) {
+      await redis.hSet(slotNamesKey(day), { [`s${play.slot}`]: name });
+      await redis.expire(slotNamesKey(day), DAY_TTL);
+    }
+  }
+}
 
 async function readStreak(uid: string): Promise<Streak | null> {
   const raw = await redis.get(streakKey(uid));
@@ -279,6 +314,20 @@ export async function recordPlay(day: string, uid: string, seeds: unknown): Prom
   await redis.expire(lbKey(day), DAY_TTL);
   await redis.expire(weekUserKey(day, uid), DAY_TTL);
   await updateLeague(day, uid);
+  // remember the username for display (rank, tomorrow's colony, recap) unless the player hid it
+  try {
+    const username = await reddit.getCurrentUsername();
+    if (username) {
+      await redis.set(nameKey(uid), username);
+      await redis.expire(nameKey(uid), DAY_TTL);
+      if (slot > 0 && !(await nameHidden(uid))) {
+        await redis.hSet(slotNamesKey(day), { [`s${slot}`]: username });
+        await redis.expire(slotNamesKey(day), DAY_TTL);
+      }
+    }
+  } catch (error) {
+    console.error(`[names] could not read the username: ${error}`);
+  }
   return { ok: true };
 }
 
@@ -291,10 +340,11 @@ async function rankFor(day: string, uid: string, immunity: number, bots: readonl
   const position = realPos + bots.filter((b) => b.immunity > immunity).length;
   const rows = await redis.zRange(lbKey(day), Math.max(0, realPos - 3), realPos + 1, { by: 'rank', reverse: true });
   type Entry = { name: string; immunity: number; you: boolean; bot: boolean };
+  const names = await Promise.all(rows.map((r) => (r.member === uid ? Promise.resolve(null) : shownName(r.member))));
   const entries: Entry[] = [
-    ...rows.map((r) => ({
-      // other real players stay anonymous, but are marked as people so they are never mistaken for bots
-      name: r.member === uid ? 'You' : `${labRatName(r.member)} (player)`,
+    ...rows.map((r, i) => ({
+      // real players show their username; those who hid it stay anonymous, marked as people (never mistaken for bots)
+      name: r.member === uid ? 'You' : (names[i] ?? `${labRatName(r.member)} (player)`),
       immunity: Math.round(r.score),
       you: r.member === uid,
       bot: false,
@@ -343,6 +393,16 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
     const idx = before && before.slot > 0 ? slots.indexOf(before.slot) : -1;
     yourColony = idx >= 0 ? (board.ghosts[idx]?.id ?? null) : null;
   }
+  // which of today's colonies were yesterday's players who show their name
+  const neighbourNames: Record<string, string> = {};
+  if (realColonies > 0) {
+    const byslot = await redis.hGetAll(slotNamesKey(prevDay(day)));
+    slots.forEach((sl, i) => {
+      const id = board.ghosts[i]?.id;
+      const n = sl > 0 ? byslot[`s${sl}`] : undefined;
+      if (id && n) neighbourNames[id] = `u/${n}`;
+    });
+  }
   return {
     type: 'state',
     day,
@@ -358,6 +418,8 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
     yourColony,
     avgImmunity: players > 0 ? Math.round(sum / players) : 0,
     streak,
+    neighbourNames,
+    nameHidden: uid ? await nameHidden(uid) : false,
     secondsToReset: secondsToReset(date),
     played,
     attemptsUsed: saved?.attempts ?? 0,
@@ -514,6 +576,7 @@ export async function recapFor(day: string): Promise<string> {
       avgImmunity: players > 0 ? Math.round(Number(stats.sum ?? 0) / players) : 0,
       goal: prevBoard?.goal ?? LEVELS[levelForDay(prev)].teamGoal,
       bestImmunity: top[0] ? Math.round(top[0].score) : null,
+      bestName: top[0] ? await shownName(top[0].member) : null,
       zeroName: zeroId ? (COLONY_NAMES[zeroId] ?? null) : null,
       vaccineToday: today.vaccine,
       twist,

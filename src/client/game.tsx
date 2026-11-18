@@ -22,6 +22,7 @@ import { SHARE_ENABLED, shareText } from '../shared/share';
 import { resultCue, roundCues } from '../shared/soundPlan';
 import { isMuted, setMuted, sfx } from './sound';
 import { journey } from './journey';
+import { CountUp } from './ui/CountUp';
 import {
   countdown,
   forecastFor,
@@ -44,7 +45,7 @@ const clamp = (v: number, lo: number, hi: number) =>
 const sameCell = (a: Point, b: Point) => a[0] === b[0] && a[1] === b[1];
 
 export const App = () => {
-  const { state, stateAt, error, play, vote, share, setFlair, setStreakHidden, reload } = useDay();
+  const { state, stateAt, error, play, vote, share, setFlair, setStreakHidden, setNameHidden, reload } = useDay();
   const [flairMsg, setFlairMsg] = useState<string | null>(null);
   const [confirmShare, setConfirmShare] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
@@ -61,6 +62,8 @@ export const App = () => {
   const [msg, setMsg] = useState('Tap an empty square to plant a dot.');
   const [busy, setBusy] = useState(false);
   const [soundOff, setSoundOff] = useState(isMuted);
+  // the germs' wake-up round: a sneeze shakes the board for a moment
+  const [sneeze, setSneeze] = useState(0);
   // the 'New board in' countdown ticks once a minute from when the state arrived
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -252,6 +255,10 @@ export const App = () => {
     timer.current = window.setInterval(() => {
       r++;
       setRound(r);
+      if (r === wake) {
+        setSneeze(r);
+        window.setTimeout(() => setSneeze(0), 900);
+      }
       if (r >= ROUNDS) finishRun();
       else sfx.round(r, roundCues(runFrames, r, wake));
     }, STEP_MS);
@@ -455,9 +462,18 @@ export const App = () => {
             Neighbours today:{' '}
             {state.realColonies > 0 && (
               <>
-                {state.realColonies}{' '}
-                {state.realColonies === 1 ? 'colony' : 'colonies'} from
-                yesterday's players (anonymous) and{' '}
+                {Object.entries(state.neighbourNames)
+                  .filter(([id]) => id !== state.yourColony)
+                  .map(([id, n]) => `${n} (${COLONY_NAMES[id] ?? id})`)
+                  .join(', ')}
+                {Object.keys(state.neighbourNames).filter((id) => id !== state.yourColony).length > 0 ? ', ' : ''}
+                {(() => {
+                  const anon = state.realColonies - Object.keys(state.neighbourNames).length;
+                  return anon > 0
+                    ? `${anon} anonymous ${anon === 1 ? 'player' : 'players'} from yesterday, `
+                    : '';
+                })()}
+                and{' '}
               </>
             )}
             {state.ghosts.length - state.realColonies} lab-rat bot{' '}
@@ -478,7 +494,12 @@ export const App = () => {
           </div>
         )}
 
-        <div className="dgv-boardbox">
+        <div className={`dgv-boardbox ${sneeze ? 'dgv-sneeze' : ''}`}>
+          {sneeze > 0 && (
+            <span className="dgv-achoo" aria-hidden="true">
+              Achoo!
+            </span>
+          )}
           <Board
             ghosts={state.ghosts}
             mine={phase === 'plant' ? mine : (runSeeds ?? mine)}
@@ -584,7 +605,7 @@ export const App = () => {
           >
             <div className="dgv-small dgv-muted">You kept alive</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span className="dgv-big">{kept}</span>
+              <CountUp className="dgv-big" value={kept} />
               <span style={{ fontSize: 18 }}>dots</span>
             </div>
             <div className="dgv-bar">
@@ -689,6 +710,32 @@ export const App = () => {
             <div className="dgv-small dgv-muted" style={{ marginTop: 6 }}>
               Only your best run of the day counts. New board in{' '}
               {countdown(Math.max(0, state.secondsToReset - Math.floor((now - stateAt) / 1000)))}.
+            </div>
+
+            <div className="dgv-small" style={{ marginTop: 6 }}>
+              {state.nameHidden ? (
+                <>
+                  You appear as an anonymous lab rat (player) in the rank and on tomorrow's board.{' '}
+                  <button className="dgv-link" onClick={() => void setNameHidden(false)}>
+                    Show my name
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="dgv-muted">
+                    Your username shows in the rank, on tomorrow's board and in the daily recap.
+                  </span>{' '}
+                  <button
+                    className="dgv-link"
+                    onClick={() => {
+                      journey.interaction('name', 'hide');
+                      void setNameHidden(true);
+                    }}
+                  >
+                    Hide my name
+                  </button>
+                </>
+              )}
             </div>
 
             {state.streak && (
@@ -894,7 +941,7 @@ export const App = () => {
                 <div className="dgv-small dgv-muted" style={{ marginBottom: 4 }}>
                   {state.players === 1
                     ? 'You are the only real player so far today; the rest are lab rats (bots).'
-                    : `${state.players} real players today (shown as "player"); the rest are lab rats (bots).`}
+                    : `${state.players} real players today (by username, or "player" if they hide it); the rest are lab rats (bots).`}
                 </div>
                 <div
                   className="dgv-near"

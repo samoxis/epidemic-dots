@@ -13,6 +13,8 @@ export type RecapInput = {
   goal: number;
   /** Best immunity among real players yesterday, or null. */
   bestImmunity: number | null;
+  /** Who had that best run ("u/name"), or null when they stay anonymous. */
+  bestName?: string | null;
   /** Colour name of yesterday's Patient Zero, or null if unknown. */
   zeroName: string | null;
   /** True when today is a Vaccine day (yesterday's goal was reached). */
@@ -30,7 +32,7 @@ export function recapText(r: RecapInput): string {
   } else {
     const who = r.players === 1 ? '1 real player' : `${r.players} real players`;
     let s = `**Yesterday in the lab (${r.dateLabel}):** ${who}, average immunity ${r.avgImmunity}% (goal ${r.goal}%).`;
-    if (r.bestImmunity !== null) s += ` Best run: ${r.bestImmunity}%.`;
+    if (r.bestImmunity !== null) s += ` Best run: ${r.bestImmunity}%${r.bestName ? ` by ${r.bestName}` : ''}.`;
     lines.push(s);
     lines.push(
       r.vaccineToday
