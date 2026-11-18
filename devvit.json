@@ -41,8 +41,7 @@
   },
   "permissions": {
     "reddit": {
-      "enable": true,
-      "asUser": ["SUBMIT_COMMENT"]
+      "enable": true
     }
   },
   "scripts": {

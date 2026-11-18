@@ -1,4 +1,4 @@
-// Reference game engine for Petri (working title), extracted from the clickable prototype.
+// Reference game engine for Epidemic Dots, extracted from the clickable prototype.
 // Plain JS, no dependencies. Source of truth for rules and balance until the TypeScript port.
 
 'use strict';

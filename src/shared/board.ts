@@ -56,10 +56,11 @@ function farEnough(a: readonly Point[], b: readonly Point[]): boolean {
 }
 
 /** The six other colonies of a day, one of them secretly Patient Zero. Anonymous "lab rats" until real placements exist. */
-export function makeGhosts(day: string): Ghost[] {
+export function makeGhosts(day: string, variant = 0): Ghost[] {
   // The first layouts that fit win; a day whose draw does not fit simply redraws with the next sub-seed.
   for (let retry = 0; retry < 200; retry++) {
-    const rng = rngFromText(retry === 0 ? `ghosts:${day}` : `ghosts:${day}:${retry}`);
+    const base = variant === 0 ? `ghosts:${day}` : `ghosts:${day}:v${variant}`;
+    const rng = rngFromText(retry === 0 ? base : `${base}:${retry}`);
     const placed: Ghost[] = [];
     for (let i = 0; i < IDS.length; i++) {
       const want = SEED_COUNTS[i] ?? 2;
@@ -109,11 +110,15 @@ function validReal(seeds: readonly Point[]): boolean {
  * lab-rat bot colonies. `slots[i]` is the anonymous slot behind ghosts[i], or 0 for a bot colony.
  * Deterministic for a given day and set of placements.
  */
-export function makeGhostsFromReal(day: string, real: readonly RealColony[]): { ghosts: Ghost[]; slots: number[] } {
+export function makeGhostsFromReal(
+  day: string,
+  real: readonly RealColony[],
+  variant = 0,
+): { ghosts: Ghost[]; slots: number[] } {
   const base = [...real].filter((r) => validReal(r.seeds)).sort((a, b) => a.slot - b.slot);
-  if (base.length === 0) return { ghosts: makeGhosts(day), slots: IDS.map(() => 0) };
+  if (base.length === 0) return { ghosts: makeGhosts(day, variant), slots: IDS.map(() => 0) };
   for (let retry = 0; retry < 200; retry++) {
-    const rng = rngFromText(`realghosts:${day}:${retry}`);
+    const rng = rngFromText(variant === 0 ? `realghosts:${day}:${retry}` : `realghosts:${day}:v${variant}:${retry}`);
     const pool = [...base];
     for (let i = pool.length - 1; i > 0; i--) {
       const j = randomInt(rng, i + 1);
@@ -159,7 +164,7 @@ export function makeGhostsFromReal(day: string, real: readonly RealColony[]): { 
       slots: placed.map((p) => p.slot),
     };
   }
-  return { ghosts: makeGhosts(day), slots: IDS.map(() => 0) };
+  return { ghosts: makeGhosts(day, variant), slots: IDS.map(() => 0) };
 }
 
 /** Anonymous label for a player, stable per player id. */

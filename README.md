@@ -20,8 +20,8 @@ links, no external services and no free-text input.
 ## For moderators: set up and run
 
 1. Install the app in your subreddit.
-2. Open the subreddit menu and choose **Create a new post** to put today's game in the feed. After that the app
-   posts a new board by itself every day at 00:00 UTC.
+2. Installing the app posts today's game in the feed. After that the app posts a new board by itself every day at
+   00:00 UTC. (The subreddit menu item **Create a new post** is only for an extra post, if you ever need one.)
 3. Players tap the post to play. Nothing else needs configuring.
 
 Questions, bug reports or anything that looks wrong: message the mods of r/epidemic_dots_dev (modmail). Posts and
@@ -49,7 +49,7 @@ The lab predicts how many dots you will keep. Beat the prediction for a badge. A
   up two rounds later.
 - **Daily mutation:** after your run, vote for how the germs change tomorrow: **Zoomier** (spread every round, but
   only 1 square), **Jumpier** (one square further) or **Grumpier** (wake a round earlier). The most popular one wins; if nobody votes, the lab rats (bots) pick one, so every day has a twist.
-- **Weekly leagues** (Sniffle, Cough, Fever, Outbreak, Pandemic) move you up on your weekly average. You never move down.
+- **Weekly leagues** (Sniffle, Cough, Fever, Outbreak, Pandemic) move you up on your weekly average. You never move down while you keep playing (after 14 days away the lab forgets you and you start again in Sniffle).
   Reach a 60% weekly average to move up one league per week. You can optionally show your league as your flair in the subreddit; it is off until you tap the button and you can remove it any time.
 - **Difficulty rotates by day:** easy days (Sneezy), spicy days (Hopper) and chaotic days (Yeet), each with its own
   board layout and its own team goal.
@@ -77,14 +77,14 @@ They are bots and they are **always labelled as bots** ("lab rat #123 (bot)"). R
 
 ## Privacy
 
-- Stored per player: today's best placement, score, vote and weekly average, keyed by Reddit user id, auto-deleted after 14 days.
+- Stored per player: today's best placement, score, vote, weekly average, league and whether you opted in to the league flair, keyed by Reddit user id, auto-deleted after 14 days.
 - Yesterday's best placements are reused as neighbour colonies under a numbered slot only, never with a user id or username.
 - Nothing is sent to outside services, and nothing is sold or used to profile anyone.
 
 ## Design rules we hold ourselves to
 
 - No loot boxes, no random rewards, no paid randomness, no daily-login bonuses.
-- Streak-style goals always keep a free pass; nothing here punishes you for missing a day.
+- No streaks and no daily-login pressure: nothing here punishes you for missing a day.
 - The game never posts or comments as you. (A tap-to-confirm "share my score as a comment" is built but switched off until Reddit approves the app, because only approved apps can post as the player.)
 - Funny, never mean to the player.
 

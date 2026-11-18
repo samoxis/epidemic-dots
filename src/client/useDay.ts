@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ROUNDS, VACCINE_WAKE_DELAY, aliveOf, myCells, runSim, LEVELS, type Frame, type Point } from '../shared/engine';
+import { ROUNDS, VACCINE_WAKE_DELAY, aliveOf, myCells, runSim, type Frame, type Point } from '../shared/engine';
 import type { ErrorResponse, ShareResponse, StateResponse } from '../shared/api';
 import type { Mutation } from '../shared/engine';
+import { labForecast } from '../shared/dayBoard';
 
 async function readJson(res: Response): Promise<StateResponse | ErrorResponse> {
   return (await res.json()) as StateResponse | ErrorResponse;
@@ -9,7 +10,13 @@ async function readJson(res: Response): Promise<StateResponse | ErrorResponse> {
 
 /** Loads today's board and the player's own result, and saves a play. */
 export function useDay() {
-  const [state, setState] = useState<StateResponse | null>(null);
+  const [state, setStateRaw] = useState<StateResponse | null>(null);
+  /** When the latest state arrived (ms), so countdowns can tick from it. */
+  const [stateAt, setStateAt] = useState(0);
+  const setState = useCallback((next: StateResponse | null | ((s: StateResponse | null) => StateResponse | null)) => {
+    setStateRaw(next);
+    setStateAt(Date.now());
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   const apply = useCallback((data: StateResponse | ErrorResponse) => {
@@ -18,7 +25,7 @@ export function useDay() {
       setState(data);
       setError(null);
     }
-  }, []);
+  }, [setState]);
 
   const reload = useCallback(() => {
     fetch('/api/state')
@@ -42,8 +49,8 @@ export function useDay() {
     };
   }, [apply]);
 
-  /** Returns an error message, or null on success. */
-  const play = useCallback(async (seeds: readonly Point[]): Promise<string | null> => {
+  /** Saves a run. Returns the new state (with Patient Zero, now that the board was played) or an error message. */
+  const play = useCallback(async (seeds: readonly Point[]): Promise<StateResponse | string> => {
     try {
       const res = await fetch('/api/play', {
         method: 'POST',
@@ -53,11 +60,11 @@ export function useDay() {
       const data = await readJson(res);
       if ('status' in data) return data.message;
       setState(data);
-      return null;
+      return data;
     } catch {
       return 'The lab lost your paperwork. Try again.';
     }
-  }, []);
+  }, [setState]);
 
   /** Vote for tomorrow's mutation. Returns an error message, or null on success. */
   const vote = useCallback(async (choice: Mutation): Promise<string | null> => {
@@ -74,7 +81,7 @@ export function useDay() {
     } catch {
       return 'The ballot box is jammed. Try again.';
     }
-  }, []);
+  }, [setState]);
 
   /** Opt in or out of showing the league as flair. Returns an error message, or null on success. */
   const setFlair = useCallback(async (on: boolean): Promise<string | null> => {
@@ -91,7 +98,7 @@ export function useDay() {
     } catch {
       return 'The flair printer jammed. Nothing changed.';
     }
-  }, []);
+  }, [setState]);
 
   /** Posts the score comment as the player. Only ever called from an explicit confirm tap. */
   const share = useCallback(async (): Promise<{ ok: boolean; message: string }> => {
@@ -104,9 +111,9 @@ export function useDay() {
     } catch {
       return { ok: false, message: 'The lab pigeon got lost. Nothing was shared.' };
     }
-  }, []);
+  }, [setState]);
 
-  return { state, error, play, vote, share, setFlair, reload } as const;
+  return { state, stateAt, error, play, vote, share, setFlair, reload } as const;
 }
 
 /** All 9 frames (start + 8 rounds) of a placement on today's board, using the same engine as the server. */
@@ -118,9 +125,9 @@ export function keptIn(frame: Frame | undefined): number {
   return frame ? myCells(aliveOf(frame), false) : 0;
 }
 
+/** The lab's prediction, computed exactly like the server does (see shared/dayBoard.ts). */
 export function forecastFor(state: StateResponse, seeds: readonly Point[]): number {
-  const clean = keptIn(simulate(state, seeds, false)[ROUNDS]);
-  return Math.max(1, Math.round(clean * LEVELS[state.strain.level].fc));
+  return labForecast(keptIn(simulate(state, seeds, false)[ROUNDS]), state.strain.fc, state.bestPossible);
 }
 
 export function countdown(seconds: number): string {

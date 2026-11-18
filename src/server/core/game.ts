@@ -8,7 +8,6 @@ import {
   N,
   ROUNDS,
   aliveOf,
-  findBest,
   MUTATIONS,
   calibratedGoal,
   effectiveStrain,
@@ -20,7 +19,8 @@ import {
   type Mutation,
   type Point,
 } from '../../shared/engine';
-import { dayKey, labRatName, levelForDay, makeGhostsFromReal, secondsToReset, weekKey, type RealColony } from '../../shared/board';
+import { dayKey, labRatName, levelForDay, secondsToReset, weekKey, type RealColony } from '../../shared/board';
+import { cleanKept, labForecast, pickBoard } from '../../shared/dayBoard';
 import { rngFromText } from '../../shared/rng';
 import { LEAGUES, leagueName, nextLeague } from '../../shared/league';
 import { shareText } from '../../shared/share';
@@ -38,6 +38,10 @@ type DayBoard = {
   vaccine: boolean;
   mutation: Mutation;
   mutationBy?: 'players' | 'rats';
+  /** True when the lab rats' mutation was dropped because it made the board unfair. */
+  mutationCancelled?: boolean;
+  /** The lab's forecast factor for this board (absent on boards made before it existed: the strain's factor is used). */
+  fc?: number;
   /** Team goal for the day (average immunity score), calibrated when the board is created. */
   goal: number;
 };
@@ -102,16 +106,27 @@ export async function loadBoard(day: string): Promise<DayBoard> {
   const cached = await redis.get(boardKey(day));
   if (cached) return JSON.parse(cached) as DayBoard;
   const level = levelForDay(day);
-  const { ghosts, slots } = makeGhostsFromReal(day, await yesterdaysColonies(day));
   const vaccine = await vaccineFor(day);
-  const { mutation, by: mutationBy } = await mutationFor(day);
+  const voted = await mutationFor(day);
   const delay = vaccine ? VACCINE_WAKE_DELAY : 0;
-  const { best, seeds } = findBest(rngFromText(`best:${day}`), level, ghosts, 1500, 3, delay, mutation);
+  // A fair board (see shared/dayBoard.ts); Patient Zero comes from a server-only random seed.
+  const picked = pickBoard({
+    day,
+    level,
+    real: await yesterdaysColonies(day),
+    mutation: voted.mutation,
+    mutationBy: voted.by,
+    wakeDelay: delay,
+    zeroSeed: globalThis.crypto?.randomUUID?.() ?? `${Math.random()}:${Date.now()}`,
+  });
+  const { ghosts, slots, best, bestSeeds, mutation, mutationCancelled, fc } = picked;
   const goal = calibratedGoal(rngFromText(`goal:${day}`), level, ghosts, best, delay, mutation);
-  const board: DayBoard = { level, ghosts, slots, best, bestSeeds: seeds, vaccine, mutation, mutationBy, goal };
-  await redis.set(boardKey(day), JSON.stringify(board));
+  const board: DayBoard = { level, ghosts, slots, best, bestSeeds, vaccine, mutation, mutationBy: voted.by, mutationCancelled, fc, goal };
+  // Two first requests at once must not create two different boards: only the first write wins.
+  await redis.set(boardKey(day), JSON.stringify(board), { nx: true });
   await redis.expire(boardKey(day), DAY_TTL);
-  return board;
+  const stored = await redis.get(boardKey(day));
+  return stored ? (JSON.parse(stored) as DayBoard) : board;
 }
 
 export function strainInfo(b: DayBoard): StrainInfo {
@@ -127,14 +142,13 @@ export function strainInfo(b: DayBoard): StrainInfo {
     mutationBy: b.mutation && b.mutation !== 'none' ? (b.mutationBy ?? 'players') : 'none',
     jump: e.jump,
     every: e.every,
-    fc: l.fc,
+    fc: b.fc ?? l.fc,
     teamGoal: b.goal ?? l.teamGoal,
   };
 }
 
-function forecastFor(seeds: readonly Point[], level: LevelKey, ghosts: readonly Ghost[]): number {
-  const last = runSim(seeds, false, level, false, ghosts).frames[ROUNDS];
-  return Math.max(1, Math.round((last ? myCells(aliveOf(last), false) : 0) * LEVELS[level].fc));
+function forecastFor(seeds: readonly Point[], board: DayBoard): number {
+  return labForecast(cleanKept(seeds, board.level, board.ghosts), board.fc ?? LEVELS[board.level].fc, board.best);
 }
 
 export function validSeeds(seeds: unknown, ghosts: readonly Ghost[]): seeds is Point[] {
@@ -189,13 +203,15 @@ export async function recordPlay(day: string, uid: string, seeds: unknown): Prom
     kept,
     immunity: immunityScore(kept, board.best),
     clean: !res.touched.me,
-    forecast: forecastFor(seeds, board.level, board.ghosts),
+    forecast: forecastFor(seeds, board),
   };
   const { best, first, delta } = mergeAttempt(prev?.result ?? null, run);
   let slot = prev?.slot ?? 0;
   if (first) {
-    const n = await redis.hIncrBy(statsKey(day), 'players', 1);
-    slot = n; // the n-th real player of the day: an anonymous handle for tomorrow's colony
+    await redis.hIncrBy(statsKey(day), 'players', 1);
+    // An anonymous handle for tomorrow's colony. Its own counter never goes down (unlike 'players', which the moderator
+    // reset decrements), so two players can never share a slot.
+    slot = await redis.hIncrBy(statsKey(day), 'slots', 1);
     await redis.hIncrBy(weekUserKey(day, uid), 'days', 1);
   }
   await redis.hSet(playKey(day, uid), {
@@ -215,8 +231,9 @@ export async function recordPlay(day: string, uid: string, seeds: unknown): Prom
   if (delta !== 0) {
     await redis.hIncrBy(statsKey(day), 'sum', delta);
     await redis.hIncrBy(weekUserKey(day, uid), 'sum', delta);
-    await redis.zAdd(lbKey(day), { member: uid, score: best.immunity });
   }
+  // a first run that scored 0% still belongs in the rank
+  if (first || delta !== 0) await redis.zAdd(lbKey(day), { member: uid, score: best.immunity });
   await redis.expire(statsKey(day), DAY_TTL);
   await redis.expire(lbKey(day), DAY_TTL);
   await redis.expire(weekUserKey(day, uid), DAY_TTL);

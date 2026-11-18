@@ -43,7 +43,7 @@ const clamp = (v: number, lo: number, hi: number) =>
 const sameCell = (a: Point, b: Point) => a[0] === b[0] && a[1] === b[1];
 
 export const App = () => {
-  const { state, error, play, vote, share, setFlair } = useDay();
+  const { state, stateAt, error, play, vote, share, setFlair, reload } = useDay();
   const [flairMsg, setFlairMsg] = useState<string | null>(null);
   const [confirmShare, setConfirmShare] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
@@ -60,6 +60,12 @@ export const App = () => {
   const [msg, setMsg] = useState('Tap an empty square to plant a dot.');
   const [busy, setBusy] = useState(false);
   const [soundOff, setSoundOff] = useState(isMuted);
+  // the 'New board in' countdown ticks once a minute from when the state arrived
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(id);
+  }, []);
   // what the current run will sound like at its end (set on release, played once)
   const runEnd = useRef<{ cue: 'cheer' | 'meh'; played: boolean } | null>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -213,19 +219,20 @@ export const App = () => {
       return;
     }
     setBusy(true);
-    const err = await play(mine);
+    const saved = await play(mine);
     setBusy(false);
-    if (err) {
-      setMsg(err);
+    if (typeof saved === 'string') {
+      setMsg(saved);
       return;
     }
     sfx.release();
-    const runFrames = simulate(state, mine);
+    // Use the state the server sent back: on the first run of the day only it knows Patient Zero.
+    const runFrames = simulate(saved, mine);
     runEnd.current = {
-      cue: resultCue(keptIn(runFrames[ROUNDS]), forecastFor(state, mine)),
+      cue: resultCue(keptIn(runFrames[ROUNDS]), forecastFor(saved, mine)),
       played: false,
     };
-    const wake = state.strain.wake;
+    const wake = saved.strain.wake;
     setReleasedSeeds(mine);
     setReleased(true);
     setRunPhase('run');
@@ -245,6 +252,9 @@ export const App = () => {
         <div className="dgv-card">
           <h1 className="dgv-title">Epidemic Dots</h1>
           <p>{error}</p>
+          <button className="dgv-btn" onClick={reload}>
+            Try again
+          </button>
         </div>
       </div>
     );
@@ -656,7 +666,7 @@ export const App = () => {
             )}
             <div className="dgv-small dgv-muted" style={{ marginTop: 6 }}>
               Only your best run of the day counts. New board in{' '}
-              {countdown(state.secondsToReset)}.
+              {countdown(Math.max(0, state.secondsToReset - Math.floor((now - stateAt) / 1000)))}.
             </div>
 
             {SHARE_ENABLED && (
@@ -862,7 +872,7 @@ export const App = () => {
                 {state.league.next
                   ? `Average ${state.promotion}% this week to reach ${state.league.next}. `
                   : 'You made it to the top league. The germs salute you. '}
-                You never move down.
+                You never move down while you keep playing.
               </div>
               <div style={{ marginTop: 8 }}>
                 {state.flair ? (
