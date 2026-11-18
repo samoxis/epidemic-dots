@@ -1,0 +1,108 @@
+@import 'tailwindcss';
+
+/* Epidemic Dots: lab notebook + sticker look. One handwritten font, only on the title; everything else is system sans. */
+:root {
+  --dgv-ink: #1f2a44;
+  --dgv-muted: #4a5878;
+  --dgv-paper: #f6f1e4;
+  --dgv-pink: #ff5da2;
+  --dgv-yellow: #ffe9a8;
+  --dgv-green: #c8f0a0;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--dgv-paper);
+  color: var(--dgv-ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.dgv-wrap { max-width: 520px; margin: 0 auto; padding: 14px 14px 28px; }
+.dgv-card { position: relative; background: var(--dgv-paper); border: 1.5px solid var(--dgv-ink); border-radius: 10px; padding: 10px 10px 12px; }
+.dgv-tape { position: absolute; top: -7px; width: 46px; height: 14px; opacity: 0.85; }
+.dgv-tape.l { left: 18px; background: #ffd166; transform: rotate(-5deg); }
+.dgv-tape.r { right: 20px; background: #ff9ec4; transform: rotate(4deg); }
+.dgv-title { font-family: 'Caveat', cursive; font-weight: 700; font-size: 28px; line-height: 1; margin: 0; }
+.dgv-sound { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin: -6px 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--dgv-ink); cursor: pointer; }
+.dgv-sound[aria-pressed='false'] { color: var(--dgv-muted); }
+.dgv-sound:focus-visible { outline: 2px dashed var(--dgv-ink); outline-offset: 1px; }
+.dgv-tag { font-size: 12px; border: 1.5px solid var(--dgv-ink); border-radius: 16px; padding: 1px 9px; background: var(--dgv-yellow); white-space: nowrap; }
+.dgv-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dgv-muted { color: var(--dgv-muted); }
+.dgv-small { font-size: 14px; }
+.dgv-chip { display: inline-block; font-size: 12px; border: 1.5px dashed var(--dgv-ink); border-radius: 10px; padding: 1px 8px; background: #fff; }
+
+.dgv-board { display: block; width: 100%; background: #fffdf5; border: 1.5px solid var(--dgv-ink); border-radius: 8px; touch-action: manipulation; cursor: pointer; }
+.dgv-board-compact { width: 132px; height: 132px; flex: 0 0 132px; cursor: default; }
+
+.dgv-steps { margin: 10px 0 6px; }
+.dgv-step { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; color: #566280; font-size: 15px; line-height: 1.25; }
+.dgv-step .n { flex: 0 0 20px; height: 20px; border-radius: 50%; border: 1.5px solid #566280; text-align: center; font-size: 13px; line-height: 17px; font-weight: 700; }
+.dgv-step.on { color: var(--dgv-ink); }
+.dgv-step.on .n { background: var(--dgv-pink); border-color: var(--dgv-ink); color: var(--dgv-ink); }
+
+.dgv-btn { width: 100%; height: 46px; font: inherit; font-size: 17px; font-weight: 600; background: var(--dgv-pink); color: var(--dgv-ink); border: 2px solid var(--dgv-ink); border-radius: 12px; cursor: pointer; }
+.dgv-btn.ghost { background: #fff; font-size: 15px; font-weight: 500; width: auto; padding: 0 14px; }
+.dgv-link { background: none; border: none; padding: 8px 2px; min-height: 36px; font: inherit; font-size: 13px; color: var(--dgv-muted); text-decoration: underline; cursor: pointer; }
+.dgv-note { display: inline-block; font-size: 14px; background: #fff7c2; border: 1.5px solid var(--dgv-ink); padding: 2px 10px; transform: rotate(-1.5deg); }
+.dgv-ok { background: var(--dgv-green); padding: 0 4px; }
+
+.dgv-bar { height: 10px; background: #fff; border: 1.5px solid var(--dgv-ink); border-radius: 6px; overflow: hidden; margin: 8px 0 4px; }
+.dgv-bar > div { height: 100%; background: var(--dgv-pink); }
+.dgv-bar.green > div { background: #7ed957; }
+.dgv-goal { border: 1.5px dashed var(--dgv-ink); border-radius: 10px; padding: 10px; margin: 8px 0 12px; background: #fffdf5; }
+.dgv-badge { font-size: 14px; border: 1.5px solid var(--dgv-ink); border-radius: 14px; padding: 2px 10px; }
+.dgv-near > div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #d6cfbd; color: var(--dgv-muted); font-size: 15px; }
+.dgv-near > div.you { background: var(--dgv-yellow); color: var(--dgv-ink); font-weight: 700; padding: 6px 8px; border-radius: 6px; }
+.dgv-big { font-size: 54px; font-weight: 700; line-height: 1; }
+
+@keyframes dgv-pop { 0% { transform: scale(0.2); opacity: 0; } 70% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.dgv-pop { animation: dgv-pop 0.32s ease-out both; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .dgv-pop { animation: none; } }
+
+.dgv-vote { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit; font-size: 14px; padding: 8px 10px; margin: 4px 0; background: #fff; color: var(--dgv-ink); border: 1.5px solid var(--dgv-ink); border-radius: 10px; cursor: pointer; }
+.dgv-vote.on { background: var(--dgv-yellow); }
+
+/* On wide, short windows (desktop modal) keep the whole board in view instead of making the player scroll. */
+.dgv-boardbox { position: relative; margin: 0 auto; max-width: min(100%, max(300px, calc(100vh - 380px))); }
+@media (min-width: 560px) and (max-height: 900px) {
+  .dgv-step:not(.on) { display: none; }
+}
+
+/* Accessibility: visible keyboard focus, screen-reader-only text, no motion when the player asks for none. */
+.dgv-btn:focus-visible, .dgv-vote:focus-visible, .dgv-link:focus-visible, .dgv-board:focus-visible, input[type='range']:focus-visible {
+  outline: 3px solid var(--dgv-ink);
+  outline-offset: 3px;
+}
+.dgv-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+/* Desktop modal (wide but short): planting uses two columns, the board stays in view on the left and the controls sit beside it. */
+@media (min-width: 520px) and (max-height: 760px) {
+  .dgv-wrap { max-width: 720px; padding: 8px 10px 14px; }
+  .dgv-card.dgv-plant { display: grid; grid-template-columns: minmax(0, 1fr) 216px; column-gap: 14px; align-items: start; }
+  .dgv-card.dgv-plant > .dgv-head { grid-column: 1 / -1; }
+  .dgv-card.dgv-plant > *:not(.dgv-head):not(.dgv-boardbox):not(.dgv-tape) { grid-column: 2; font-size: 13px; margin-top: 0; }
+  .dgv-card.dgv-plant > .dgv-boardbox { grid-column: 1; grid-row: 2 / span 12; position: sticky; top: 6px; max-width: min(100%, calc(100vh - 74px)); }
+  .dgv-card.dgv-plant .dgv-small { font-size: 12.5px; }
+  .dgv-card.dgv-plant .dgv-row { flex-wrap: wrap; }
+  .dgv-card.dgv-plant .dgv-btn { height: 40px; font-size: 15px; }
+  .dgv-card.dgv-plant .dgv-step { font-size: 13px; }
+  /* status, planted counter and the release button come first in the side column; the explanations follow */
+  .dgv-card.dgv-plant > .dgv-head { order: -2; }
+  .dgv-card.dgv-plant > .dgv-act { order: -1; }
+  .dgv-card.dgv-plant > .dgv-act:nth-last-child(1) { margin-top: 8px; }
+}
+
+/* Desktop modal (724x596 for normal players) and fullscreen: board on the left, everything else on the right, in every phase. */
+@media (min-width: 680px) {
+  .dgv-wrap { max-width: 1180px; padding: 12px 14px 24px; }
+  .dgv-card.dgv-split { display: grid; grid-template-columns: minmax(0, 1fr) clamp(280px, 38vw, 400px); column-gap: 22px; align-items: start; padding: 14px 18px 18px; }
+  .dgv-card.dgv-split > .dgv-head { grid-column: 1 / -1; order: -2; }
+  .dgv-card.dgv-split > *:not(.dgv-head):not(.dgv-boardbox):not(.dgv-tape) { grid-column: 2; }
+  .dgv-card.dgv-split > .dgv-boardbox { grid-column: 1; grid-row: 2 / span 16; position: sticky; top: 8px; max-width: min(100%, calc(100vh - 100px), 640px); }
+  .dgv-card.dgv-split > .dgv-act { order: -1; }
+  /* once the germs have run, the result is what matters: leave the strain text out of the side column */
+  .dgv-card.dgv-split:not(.dgv-plant) > .dgv-intel { display: none; }
+}

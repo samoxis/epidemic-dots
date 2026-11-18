@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "outDir": "../dist/types/test",
+    "tsBuildInfoFile": "../dist/types/test/tsconfig.tsbuildinfo",
+    "types": ["node"],
+    "rootDir": "../src/shared",
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true
+  },
+  "include": ["../src/shared/**/*"],
+  "exclude": []
+}
