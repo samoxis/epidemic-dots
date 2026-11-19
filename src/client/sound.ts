@@ -34,7 +34,7 @@ export function setMuted(m: boolean): void {
 }
 
 /** Lazily opens the audio context; must first be called from a tap. Returns null when muted or unsupported. */
-function audio(): { ac: AudioContext; out: GainNode } | null {
+export function audio(): { ac: AudioContext; out: GainNode } | null {
   if (muted) return null;
   try {
     if (!ctx) {

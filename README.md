@@ -67,6 +67,13 @@ soft tick each round, a comic *bwomp* when the germs wake up, a sad *boing* when
 fanfare (or a deadpan *wah-wah* when the lab was right). Sounds only start after you tap, the feed card is always
 silent, and the speaker button next to the date mutes them (remembered on your device).
 
+There is also a little tune, the same one as in the demo video (strings, pizzicato and all). It is original: rendered
+from the game's own note data by `tools/render-music.py` into three small MP3 loops (about 650 KB, loaded only after
+your first tap; if they cannot load, the same notes are synthesized live). It
+stays quiet and has no melody while you plant (that's the thinking part), plays in full while the germs spread (each
+round lands on the beat), and warms up to D major under your result for a few bars before it stops, so you can read in
+peace. The note button next to the speaker turns the music off on its own; the speaker turns off everything.
+
 ## Streaks and the daily recap
 
 - **Streak:** play on consecutive days to grow it. You get **one free lazy day a week**: skip a day and the streak survives.
@@ -90,7 +97,7 @@ six) and lab-rat bot colonies when there are not enough; before you plant, the g
 - Your own dots have a dashed outer ring, so colour is never the only way to tell them apart. Sick dots also have a different face.
 - Text colours meet WCAG AA contrast (checked by a test), pinch-zoom is allowed, and focus is always visible.
 - With "reduce motion" on, the zoom, pop-in and feed-card loop stay still.
-- Sound is never needed to play: every sound has an on-screen message too, and the speaker button turns it off.
+- Sound is never needed to play: every sound has an on-screen message too, the speaker button turns it all off and the note button turns off just the music.
 
 ## Privacy
 

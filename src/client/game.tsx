@@ -21,6 +21,8 @@ import {
 import { SHARE_ENABLED, shareText } from '../shared/share';
 import { resultCue, roundCues } from '../shared/soundPlan';
 import { isMuted, setMuted, sfx } from './sound';
+import { isMusicOff, playMusic, setMusicOff, stopMusic } from './music';
+import { ROUND_MS } from '../shared/musicPlan';
 import { journey } from './journey';
 import { CountUp } from './ui/CountUp';
 import { DotShower } from './ui/DotShower';
@@ -35,7 +37,7 @@ import {
 } from './useDay';
 
 const ZOOM = 6; // zoom area in cells: 2x magnification, about 10 mm per square on a typical phone
-const STEP_MS = 1200;
+const STEP_MS = ROUND_MS;
 // Fingers land a little below and to the right of the target centre, so the sensed point is nudged up and left.
 const TAP_OFFSET = { x: -2, y: -3 };
 // With a mouse or trackpad a square is easy to hit, so a click plants straight away; the zoom step is for fingers.
@@ -66,6 +68,8 @@ export const App = () => {
   const [msg, setMsg] = useState('Tap an empty square to plant a dot.');
   const [busy, setBusy] = useState(false);
   const [soundOff, setSoundOff] = useState(isMuted);
+  const [musicOff, setMusicOffState] = useState(isMusicOff);
+  useEffect(() => stopMusic, []);
   // the germs' wake-up round: a sneeze shakes the board for a moment
   const [sneeze, setSneeze] = useState(0);
   // beat the lab: a short dot shower over the result
@@ -152,6 +156,7 @@ export const App = () => {
   const onCell = useCallback(
     (cell: Point, direct = false) => {
       if (!state || phase !== 'plant' || busy) return;
+      playMusic('plant');
       if (state.ghosts.some((g) => g.seeds.some((s) => sameCell(s, cell)))) {
         sfx.nope();
         setMsg('That square is taken. Squatters, probably.');
@@ -209,6 +214,9 @@ export const App = () => {
     if (end && !end.played) {
       end.played = true;
       sfx.result(end.cue);
+      // let the result sound finish, then the warm version for a few bars, then silence while people read
+      stopMusic();
+      window.setTimeout(() => playMusic('calm'), 1800);
       if (end.cue === 'cheer') {
         setCelebrate(true);
         window.setTimeout(() => setCelebrate(false), 2600);
@@ -221,6 +229,7 @@ export const App = () => {
   const tryAgain = () => {
     journey.interaction('try_again');
     window.clearInterval(timer.current);
+    playMusic('plant');
     setRetrying(true);
     setReleased(false);
     setReleasedSeeds(null);
@@ -247,6 +256,7 @@ export const App = () => {
       return;
     }
     sfx.release();
+    playMusic('run', true);
     journey.released();
     // Use the state the server sent back: on the first run of the day only it knows Patient Zero.
     const runFrames = simulate(saved, mine);
@@ -397,6 +407,25 @@ export const App = () => {
                 ) : (
                   <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
                 )}
+              </svg>
+            </button>
+            <button
+              className="dgv-sound"
+              aria-pressed={!musicOff}
+              aria-label="Music"
+              title={musicOff ? 'Music is off' : 'Music is on'}
+              onClick={() => {
+                const off = !musicOff;
+                setMusicOff(off);
+                setMusicOffState(off);
+                if (!off && phase === 'plant') playMusic('plant');
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 17V5l10-2v12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinejoin="round" />
+                <circle cx="6.5" cy="17.5" r="2.5" fill="currentColor" />
+                <circle cx="16.5" cy="15.5" r="2.5" fill="currentColor" />
+                {musicOff && <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
               </svg>
             </button>
             <span className="dgv-tag">{prettyDay(state.day)}</span>
