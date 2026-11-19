@@ -15,7 +15,7 @@ a team goal everyone chips in on, and a vote on how the germs change tomorrow.
 Critical notes: the game stores only what it needs to play (your three dots, your score, your vote), under your
 Reddit user id, and deletes it automatically after 14 days. It shows players' usernames in the rank, on the next day's
 board and in the daily recap, unless a player taps **Hide my name**. It never posts, comments or
-subscribes as you. Posts and the pinned how-to comment come from the app account. There are no purchases, no outside
+subscribes as you. Posts, the pinned how-to comment and score comments a player asks for come from the app account. There are no purchases, no outside
 links, no external services and no free-text input.
 
 ## For moderators: set up and run
@@ -105,7 +105,7 @@ six) and lab-rat bot colonies when there are not enough; before you plant, the g
 
 - No loot boxes, no random rewards, no paid randomness, no daily-login bonuses.
 - Streaks always come with a free lazy day each week and can be hidden; nothing here punishes you for missing a day.
-- The game never posts or comments as you. (A tap-to-confirm "share my score as a comment" is built but switched off until Reddit approves the app, because only approved apps can post as the player.)
+- The game never posts or comments as you. **Share my score** is optional and needs two taps (a preview, then "Post it"): the app account replies to the pinned comment with your score and your username (or no name, if you hide it), at most once a day. It never shows where your dots were.
 - Funny, never mean to the player.
 
 ## Built with

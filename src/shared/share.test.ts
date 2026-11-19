@@ -15,3 +15,13 @@ test('clean runs say so and the bar stays within 10 squares', () => {
   assert.match(t, /never touched me/);
   assert.equal((t.match(/🟩/g) ?? []).length + (t.match(/⬜/g) ?? []).length, 10);
 });
+
+test('lab-posted comments name the player, or stay anonymous when the name is hidden', () => {
+  const named = shareText({ day: '2026-11-19', kept: 24, bestPossible: 36, immunity: 67, clean: true, who: 'u/samoxis' });
+  assert.match(named, /u\/samoxis is 67% immune: kept 24 of 36 dots\. The germs never touched them\./);
+  assert.match(named, /Posted by the lab/);
+  assert.ok(!/\bI kept\b/.test(named));
+  const hidden = shareText({ day: '2026-11-19', kept: 24, bestPossible: 36, immunity: 67, clean: false, who: null });
+  assert.match(hidden, /stay anonymous is 67% immune/);
+  assert.ok(!/u\//.test(hidden));
+});

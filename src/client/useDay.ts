@@ -100,14 +100,14 @@ export function useDay() {
     }
   }, [setState]);
 
-  /** Posts the score comment as the player. Only ever called from an explicit confirm tap. */
+  /** Asks the lab to post the score comment. Only ever called from an explicit confirm tap. */
   const share = useCallback(async (): Promise<{ ok: boolean; message: string }> => {
     try {
       const res = await fetch('/api/share', { method: 'POST' });
       const data = (await res.json()) as ShareResponse;
       if (data.status === 'error') return { ok: false, message: data.message };
       setState((s) => (s ? { ...s, shared: true } : s));
-      return { ok: true, message: 'Posted. Your username is on it, as promised.' };
+      return { ok: true, message: 'Posted under the pinned comment. Go see who else showed up.' };
     } catch {
       return { ok: false, message: 'The lab pigeon got lost. Nothing was shared.' };
     }

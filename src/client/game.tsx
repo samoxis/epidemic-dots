@@ -813,13 +813,14 @@ export const App = () => {
                       className="dgv-small dgv-muted"
                       style={{ margin: '4px 0 6px' }}
                     >
-                      This will be posted{' '}
+                      The lab's account posts this as a reply to the pinned
+                      comment.{' '}
                       <b style={{ color: 'var(--dgv-ink)' }}>
-                        from your own Reddit account
-                      </b>
-                      , so everyone can see your username. It replies to the
-                      pinned how-to comment. It never shows where your dots
-                      were. This is what will appear:
+                        {state.nameHidden
+                          ? 'Your name stays hidden.'
+                          : 'Your username is on it.'}
+                      </b>{' '}
+                      It never shows where your dots were. This is what will appear:
                     </div>
                     <pre
                       style={{
@@ -839,7 +840,10 @@ export const App = () => {
                         bestPossible: state.bestPossible,
                         immunity: played.immunity,
                         clean: played.clean,
-                      }).replace(/\*\*/g, '')}
+                        who: state.nameHidden ? null : (state.myName ?? 'u/you'),
+                      })
+                        .replace(/\*\*/g, '')
+                        .replace(/\^\((.*)\)/, '$1')}
                     </pre>
                     <div className="dgv-row">
                       <button
@@ -859,7 +863,7 @@ export const App = () => {
                           });
                         }}
                       >
-                        Post as me
+                        Post it
                       </button>
                       <button
                         className="dgv-link"

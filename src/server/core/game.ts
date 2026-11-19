@@ -383,7 +383,7 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
   const prev = prevDay(day);
   // Every read below is independent, so they run in parallel: on Devvit each Redis call is a network round trip,
   // and one after another they made opening the game take seconds.
-  const [board, stats, tally, myVote, saved, streakRaw, w, before, byslot, hidden, league, flair, shared] = await Promise.all([
+  const [board, stats, tally, myVote, saved, streakRaw, w, before, byslot, hidden, league, flair, shared, storedName] = await Promise.all([
     loadBoard(day),
     redis.hGetAll(statsKey(day)),
     redis.hGetAll(voteKey(day)),
@@ -397,6 +397,7 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
     leagueState(uid, day),
     uid ? redis.get(flairKey(uid)) : Promise.resolve(undefined),
     uid ? redis.get(sharedKey(day, uid)) : Promise.resolve(undefined),
+    uid ? redis.get(nameKey(uid)) : Promise.resolve(undefined),
   ]);
   const players = Number(stats.players ?? 0);
   const bots = botPlayers(day, board.level, board.ghosts, board.best, board.vaccine ? VACCINE_WAKE_DELAY : 0, undefined, board.mutation ?? 'none');
@@ -437,6 +438,7 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
     streak,
     neighbourNames,
     nameHidden: hidden,
+    myName: !hidden && storedName ? `u/${storedName}` : null,
     secondsToReset: secondsToReset(date),
     played,
     attemptsUsed: saved?.attempts ?? 0,
@@ -470,7 +472,8 @@ export async function shareTextFor(day: string, uid: string): Promise<string | n
   const board = await loadBoard(day);
   const play = await readPlay(day, uid);
   if (!play) return null;
-  return shareText({ day, kept: play.result.kept, bestPossible: board.best, immunity: play.result.immunity, clean: play.result.clean });
+  const who = await shownName(uid);
+  return shareText({ day, kept: play.result.kept, bestPossible: board.best, immunity: play.result.immunity, clean: play.result.clean, who });
 }
 
 export async function hasShared(day: string, uid: string): Promise<boolean> {

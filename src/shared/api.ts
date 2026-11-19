@@ -58,6 +58,8 @@ export type StateResponse = {
   neighbourNames: Record<string, string>;
   /** True when the player chose to stay anonymous (rank, tomorrow's board, recap). */
   nameHidden: boolean;
+  /** "u/name" as the score comment will show it; null when hidden or not known yet. */
+  myName: string | null;
   /** Daily streak (with one free lazy day a week), or null before the first ever run. */
   streak: { days: number; freezeAvailable: boolean; hidden: boolean } | null;
   /** The player's best run today, or null if they have not played. */

@@ -46,7 +46,7 @@ api.post('/vote', async (c) => {
 });
 
 /**
- * Posts the player's score as a comment FROM THEIR OWN account, only when they tap the share button.
+ * Posts the player's score as a comment from the app's account (with their name unless hidden), only on an explicit tap.
  * The text is rebuilt on the server from their saved best run. It replies to the pinned how-to comment when there is one.
  */
 api.post('/share', async (c) => {
@@ -67,7 +67,7 @@ api.post('/share', async (c) => {
     } catch (error) {
       console.error('sticky lookup failed, commenting on the post', error);
     }
-    const comment = await reddit.submitComment({ id: target, text, runAs: 'USER' });
+    const comment = await reddit.submitComment({ id: target, text });
     await markShared(day, uid);
     return c.json<ShareResponse>({ status: 'ok', url: comment.url ?? null });
   } catch (error) {
