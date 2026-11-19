@@ -859,7 +859,10 @@ export const App = () => {
                           void share().then((r) => {
                             setSharing(false);
                             setShareMsg(r.message);
-                            if (r.ok) setConfirmShare(false);
+                            if (r.ok) {
+                              setConfirmShare(false);
+                              journey.interaction('share_score');
+                            }
                           });
                         }}
                       >
