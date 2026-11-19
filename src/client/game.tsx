@@ -38,6 +38,9 @@ const ZOOM = 6; // zoom area in cells: 2x magnification, about 10 mm per square 
 const STEP_MS = 1200;
 // Fingers land a little below and to the right of the target centre, so the sensed point is nudged up and left.
 const TAP_OFFSET = { x: -2, y: -3 };
+// With a mouse or trackpad a square is easy to hit, so a click plants straight away; the zoom step is for fingers.
+const FINE_POINTER =
+  typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches && !window.matchMedia('(pointer: coarse)').matches;
 
 type Phase = 'plant' | 'run' | 'done';
 
@@ -154,7 +157,7 @@ export const App = () => {
         setMsg('That square is taken. Squatters, probably.');
         return;
       }
-      if (!zoomed && !direct) {
+      if (!zoomed && !direct && !FINE_POINTER) {
         const x0 = clamp(cell[0] - 2, 0, N - ZOOM);
         const y0 = clamp(cell[1] - 2, 0, N - ZOOM);
         sfx.zoom();

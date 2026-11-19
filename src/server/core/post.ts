@@ -10,7 +10,7 @@ const titleFor = (d: Date = new Date()): string =>
 const HOW_TO_PLAY = [
   '**Epidemic Dots** is a daily outbreak puzzle. New board every day (00:00 UTC).',
   '',
-  '1. **Plant 3 dots.** Tap the board to zoom, then tap the exact square.',
+  '1. **Plant 3 dots.** Click a square (on a phone, the first tap zooms in so your thumb can pick the exact square).',
   '2. **Press the pink button.** Your dots grow into empty squares next to them, one ring per round.',
   '3. **One colony is secretly sick.** Germs jump between nearby dots. Keep as many of your dots alive as you can.',
   '',

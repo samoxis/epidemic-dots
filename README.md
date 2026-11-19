@@ -30,8 +30,9 @@ comments can also be reported with Reddit's normal report button.
 
 ## How to play (about 20 seconds)
 
-1. **Tap 3 squares** to plant your dots. The first tap zooms in on that area so your thumb can pick the exact square;
-   the second tap plants the dot. Tap a dot of yours again to take it back.
+1. **Tap 3 squares** to plant your dots. With a mouse or trackpad a click plants straight away. On a touch screen the
+   first tap zooms in on that area so your thumb can pick the exact square, and the second tap plants the dot. Tap a dot
+   of yours again to take it back.
 2. **Press the pink button.** Your dots grow into **empty squares** next to them, one ring per round. A square that
    touches two different colonies stays empty.
 3. **One colony is secretly sick** (Patient Zero). When the germs wake up they jump to nearby dots and kill what they
