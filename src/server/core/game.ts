@@ -79,8 +79,9 @@ const slotNamesKey = (day: string) => `day:${day}:slotnames`;
 
 /** The player's Reddit username for display (u/name), or null when unknown or when they chose to hide it. */
 async function shownName(uid: string): Promise<string | null> {
-  if (await redis.get(hideNameKey(uid))) return null;
-  let name = await redis.get(nameKey(uid));
+  const [hiddenFlag, stored] = await Promise.all([redis.get(hideNameKey(uid)), redis.get(nameKey(uid))]);
+  if (hiddenFlag) return null;
+  let name = stored;
   if (!name && uid.startsWith('t2_')) {
     // players from before names were stored: ask Reddit once, then keep it like any other name
     try {
@@ -345,8 +346,7 @@ export async function recordPlay(day: string, uid: string, seeds: unknown): Prom
 
 /** Rank among real players and the day's lab rats (bots), with two rows above and two below the player. */
 async function rankFor(day: string, uid: string, immunity: number, bots: readonly BotPlayer[]): Promise<StateResponse['rank']> {
-  const realTotal = await redis.zCard(lbKey(day));
-  const asc = await redis.zRank(lbKey(day), uid);
+  const [realTotal, asc] = await Promise.all([redis.zCard(lbKey(day)), redis.zRank(lbKey(day), uid)]);
   if (asc === undefined || realTotal === 0) return null;
   const realPos = realTotal - asc; // 1 = best among real players
   const position = realPos + bots.filter((b) => b.immunity > immunity).length;
@@ -378,49 +378,54 @@ async function rankFor(day: string, uid: string, immunity: number, bots: readonl
 }
 
 export async function buildState(uid: string | undefined, date: Date = new Date()): Promise<StateResponse> {
+  const t0 = Date.now();
   const day = dayKey(date);
-  const board = await loadBoard(day);
-  const stats = await redis.hGetAll(statsKey(day));
+  const prev = prevDay(day);
+  // Every read below is independent, so they run in parallel: on Devvit each Redis call is a network round trip,
+  // and one after another they made opening the game take seconds.
+  const [board, stats, tally, myVote, saved, streakRaw, w, before, byslot, hidden, league, flair, shared] = await Promise.all([
+    loadBoard(day),
+    redis.hGetAll(statsKey(day)),
+    redis.hGetAll(voteKey(day)),
+    uid ? redis.get(myVoteKey(day, uid)) : Promise.resolve(undefined),
+    uid ? readPlay(day, uid) : Promise.resolve(null),
+    uid ? readStreak(uid) : Promise.resolve(null),
+    uid ? redis.hGetAll(weekUserKey(day, uid)) : Promise.resolve({} as Record<string, string>),
+    uid ? readPlay(prev, uid) : Promise.resolve(null),
+    redis.hGetAll(slotNamesKey(prev)),
+    uid ? nameHidden(uid) : Promise.resolve(false),
+    leagueState(uid, day),
+    uid ? redis.get(flairKey(uid)) : Promise.resolve(undefined),
+    uid ? redis.get(sharedKey(day, uid)) : Promise.resolve(undefined),
+  ]);
   const players = Number(stats.players ?? 0);
   const bots = botPlayers(day, board.level, board.ghosts, board.best, board.vaccine ? VACCINE_WAKE_DELAY : 0, undefined, board.mutation ?? 'none');
-  const tally = await redis.hGetAll(voteKey(day));
   const votes = { zoomier: Number(tally.zoomier ?? 0), jumpier: Number(tally.jumpier ?? 0), grumpier: Number(tally.grumpier ?? 0) };
-  const myVote = uid ? ((await redis.get(myVoteKey(day, uid))) as Mutation | null) : null;
   const sum = Number(stats.sum ?? 0);
-  const saved = uid ? await readPlay(day, uid) : null;
   const played = saved?.result ?? null;
   const rank = uid && played ? await rankFor(day, uid, played.immunity, bots) : null;
-  const streak = uid ? streakView(await readStreak(uid), day) : null;
-  let week: StateResponse['week'] = null;
-  if (uid) {
-    const w = await redis.hGetAll(weekUserKey(day, uid));
-    const days = Number(w.days ?? 0);
-    if (days > 0) week = { avg: Math.round(Number(w.sum ?? 0) / days), days };
-  }
+  const streak = uid ? streakView(streakRaw, day) : null;
+  const weekDays = Number(w.days ?? 0);
+  const week: StateResponse['week'] = weekDays > 0 ? { avg: Math.round(Number(w.sum ?? 0) / weekDays), days: weekDays } : null;
   const slots = board.slots ?? [];
   const realColonies = slots.filter((x) => x > 0).length;
-  let yourColony: string | null = null;
-  if (uid) {
-    const before = await readPlay(prevDay(day), uid);
-    const idx = before && before.slot > 0 ? slots.indexOf(before.slot) : -1;
-    yourColony = idx >= 0 ? (board.ghosts[idx]?.id ?? null) : null;
-  }
+  const idx = before && before.slot > 0 ? slots.indexOf(before.slot) : -1;
+  const yourColony = idx >= 0 ? (board.ghosts[idx]?.id ?? null) : null;
   // which of today's colonies were yesterday's players who show their name
   const neighbourNames: Record<string, string> = {};
-  if (realColonies > 0) {
-    const byslot = await redis.hGetAll(slotNamesKey(prevDay(day)));
-    slots.forEach((sl, i) => {
-      const id = board.ghosts[i]?.id;
-      const n = sl > 0 ? byslot[`s${sl}`] : undefined;
-      if (id && n) neighbourNames[id] = `u/${n}`;
-    });
-  }
+  slots.forEach((sl, i) => {
+    const id = board.ghosts[i]?.id;
+    const n = sl > 0 ? byslot[`s${sl}`] : undefined;
+    if (id && n) neighbourNames[id] = `u/${n}`;
+  });
+  const ms = Date.now() - t0;
+  if (ms > 700) console.log(`[state] slow: ${ms} ms`);
   return {
     type: 'state',
     day,
     strain: strainInfo(board),
     votes,
-    myVote: myVote && (MUTATIONS as readonly string[]).includes(myVote) ? myVote : null,
+    myVote: myVote && (MUTATIONS as readonly string[]).includes(myVote) ? (myVote as Mutation) : null,
     // Patient Zero stays secret until the player has run today's board once (the run itself needs it).
     ghosts: played ? board.ghosts : board.ghosts.map((g) => ({ id: g.id, seeds: g.seeds })),
     bestPossible: board.best,
@@ -431,7 +436,7 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
     avgImmunity: players > 0 ? Math.round(sum / players) : 0,
     streak,
     neighbourNames,
-    nameHidden: uid ? await nameHidden(uid) : false,
+    nameHidden: hidden,
     secondsToReset: secondsToReset(date),
     played,
     attemptsUsed: saved?.attempts ?? 0,
@@ -439,9 +444,9 @@ export async function buildState(uid: string | undefined, date: Date = new Date(
     rank,
     week,
     promotion: PROMOTION_IMMUNITY,
-    league: await leagueState(uid, day),
-    flair: uid ? Boolean(await redis.get(flairKey(uid))) : false,
-    shared: uid ? Boolean(await redis.get(sharedKey(day, uid))) : false,
+    league,
+    flair: Boolean(flair),
+    shared: Boolean(shared),
   };
 }
 
